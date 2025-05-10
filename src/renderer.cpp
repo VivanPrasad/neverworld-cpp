@@ -1,3 +1,4 @@
+#pragma once
 static void clear_screen(u32 color) {
     u32* pixel = (u32*)render_state.memory;
     for (int y = 0; y < render_state.height; y++) {
