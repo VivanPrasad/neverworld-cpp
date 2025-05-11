@@ -62,6 +62,7 @@ static PFNGLTEXPARAMETERIPROC glTexParameteri_ptr;
 static PFNGLTEXPARAMETERFVPROC glTexParameterfv_ptr;
 static PFNGLCLEARPROC glClear_ptr;
 static PFNGLCLEARCOLORPROC glClearColor_ptr;
+static PFNGLCLEARDEPTHPROC glClearDepth_ptr; // Custom
 static PFNGLREADBUFFERPROC glReadBuffer_ptr;
 static PFNGLDEPTHMASKPROC glDepthMask_ptr;
 static PFNGLDISABLEPROC glDisable_ptr;
@@ -134,6 +135,7 @@ void load_gl_functions()
   glTexParameterfv_ptr = (PFNGLTEXPARAMETERFVPROC)platform_load_gl_function("glTexParameterfv");
   glClear_ptr = (PFNGLCLEARPROC)platform_load_gl_function("glClear");
   glClearColor_ptr = (PFNGLCLEARCOLORPROC)platform_load_gl_function("glClearColor");
+  glClearDepth_ptr = (PFNGLCLEARDEPTHPROC)platform_load_gl_function("glClearDepth"); // Test
   glReadBuffer_ptr = (PFNGLREADBUFFERPROC)platform_load_gl_function("glReadBuffer");
   glDepthMask_ptr = (PFNGLDEPTHMASKPROC)platform_load_gl_function("glDepthMask");
   glDisable_ptr = (PFNGLDISABLEPROC)platform_load_gl_function("glDisable");
@@ -426,6 +428,10 @@ GLAPI void APIENTRY glClear (GLbitfield mask)
 GLAPI void APIENTRY glClearColor (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
   glClearColor_ptr(red, green, blue, alpha);
+}
+
+GLAPI void APIENTRY glClearDepth (GLdouble depth) {
+    glClearDepth_ptr(depth);
 }
 
 void glReadBuffer(GLenum mode)

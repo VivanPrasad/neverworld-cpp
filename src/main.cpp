@@ -16,12 +16,8 @@ int main() {
     input.screenHeight = 720;
     BumpAllocator transientStorage = make_bump_allocator(MB(50));
     platform_create_window(input.screenWidth, input.screenHeight);
-
-    setup_performance();
-
     gl_init(&transientStorage);
-
-    printf("running: %d\n", running);
+    setup_frame_time();
 
     while (running) {
         // Input

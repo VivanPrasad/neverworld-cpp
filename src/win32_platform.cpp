@@ -172,7 +172,7 @@ static void handle_window_input() {
     }
 }
 
-static void setup_performance() {
+static void setup_frame_time() {
     LARGE_INTEGER perf;
     QueryPerformanceFrequency(&perf);
     performance.frequency = (float)perf.QuadPart;
