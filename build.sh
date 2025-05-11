@@ -1,3 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
 echo "Building Neverworld..."
-g++ src/main.cpp -o neverworld.exe -lgdi32 -lstdc++
+includes="-Ithird_party -Ithird_party/Include"
+libraries="-lgdi32 -lopengl32"
+warnings="-Wno-write-strings -Wno-format-security"
+g++ $includes -g src/main.cpp -o neverworld.exe $libraries $warnings

@@ -1,43 +1,39 @@
-#include "iostream"
-#include "utils.cpp"
-#include "input.cpp"
-
-static bool running = true;
-static Input input = {};
-
-#define handle_input(b, vk) \
-    case vk: {\
-        input.buttons[b].is_down = is_down;\
-        input.buttons[b].changed = true;\
-    } break;
-
-#include "platform.cpp"
 #include "neverlib.h"
-#include "renderer.cpp"
-#include "game.cpp"
+#include "platform.h"
+#include "input.h"
+
+#define APIENTRY
+#define GL_GLEXT_PROTOTYPES
+#include "glcorearb.h"
+#ifdef _WIN32
+#include "win32_platform.cpp"
+#endif
+
+#include "gl_renderer.cpp"
 
 int main() {
-    HWND window = platform_create(1280, 720);
-    HDC hdc = GetDC(window);
+    input.screenWidth = 1280;
+    input.screenHeight = 720;
+    BumpAllocator transientStorage = make_bump_allocator(MB(50));
+    platform_create_window(input.screenWidth, input.screenHeight);
+
     setup_performance();
+
+    gl_init(&transientStorage);
+
+    printf("running: %d\n", running);
 
     while (running) {
         // Input
-        handle_window_input(window);
+        handle_window_input();
 
         // Simulate
-        simulate_game(&input, performance.delta);
 
         // Render
-        StretchDIBits(
-            hdc, 0, 0, render_state.width, render_state.height, 0, 0,
-            render_state.width, render_state.height, render_state.memory, 
-            &render_state.bitmap_info, DIB_RGB_COLORS, SRCCOPY);
+        gl_render();
+        platform_swap_buffers();
         
-        //SM_TRACE("Trace");
-        //SM_WARN("Warn");
-        //SM_ERROR("Error");
-        //SM_ASSERT(false,"Invalid window");
+        // Time
         update_frame_time();
     }
     return EXIT_SUCCESS;
