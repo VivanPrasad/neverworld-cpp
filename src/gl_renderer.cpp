@@ -4,6 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "render_interface.h"
+
 // ###################### OPENGL CONSTANTS ##################################
 const char* TEXTURE_PATH = "assets/textures/TEXTURE_ATLAS.png";
 
@@ -11,6 +13,8 @@ const char* TEXTURE_PATH = "assets/textures/TEXTURE_ATLAS.png";
 struct GLContext {
     GLuint programID;
     GLuint textureID;
+    GLuint transformSBOID; // Transform Shader Buffer Object ID
+    GLuint screenSizeID; // Screen Size Uniform ID
 };
 
 // ###################### OPENGL GLOBALS ##################################
@@ -103,7 +107,7 @@ bool gl_init(BumpAllocator* transientStorage) {
         glBindTexture(GL_TEXTURE_2D, glContext.textureID);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
         // TexelFetch Coordinates, ignoring filtering
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -114,9 +118,23 @@ bool gl_init(BumpAllocator* transientStorage) {
 
         stbi_image_free(data);
     }
+
+    // Transform Storage Buffer
+    {
+        glGenBuffers(1, &glContext.transformSBOID);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, glContext.transformSBOID);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Transform) * MAX_TRANSFORMS, 
+            renderData.transforms, GL_DYNAMIC_DRAW);
+    }
+
+    // Uniforms
+    {
+        glContext.screenSizeID = glGetUniformLocation(glContext.programID, "screenSize");
+    }
+
     // Same color space as the texture
     glEnable(GL_FRAMEBUFFER_SRGB);
-    glDisable(GL_BLEND); // Disable multisampling
+    glDisable(0x809D); // Disable multisampling
 
     // Depth testing
     glEnable(GL_DEPTH_TEST);
@@ -127,11 +145,25 @@ bool gl_init(BumpAllocator* transientStorage) {
     return true;
 }
 
-void gl_render() {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+void gl_render(BumpAllocator* transientStorage) {
+    glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
     glClearDepth(0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, input.screenWidth, input.screenHeight);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // Copy screen size to the GPU
+    {
+        Vec2 screenSize = {(float)input.screenWidth, (float)input.screenHeight};
+        glUniform2fv(glContext.screenSizeID, 1, &screenSize.x);
+    }
+
+    // Opaque Objects
+    {
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 
+            sizeof(Transform) * renderData.transformCount,
+            renderData.transforms);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, renderData.transformCount);
+        // Reset for next frame
+        renderData.transformCount = 0;
+    }
 }

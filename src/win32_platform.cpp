@@ -41,11 +41,13 @@ void platform_create_window(int width, int height) {
     WNDCLASSA wc = {};
 
     LPCSTR title = (LPCSTR)TEXT("NEVERWORLD");
-    wc.hInstance = hInstance;
+
     wc.hIcon = LoadIcon(0, IDI_APPLICATION);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+
     wc.lpszClassName = title;
     wc.lpfnWndProc = &window_callback;
+    wc.hInstance = hInstance;
     
     // Register Class
     SM_ASSERT(RegisterClassA(&wc), "Failed to register window class");
