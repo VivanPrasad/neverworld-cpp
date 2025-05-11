@@ -13,6 +13,7 @@ layout (std430, binding = 0) buffer TransformSBO {
 };
 
 uniform vec2 screenSize; // Screen size for normalizing coordinates
+uniform mat4 projection; // Projection matrix for 3D orthogrpahic rendering
 
 // Output
 layout (location = 0) out vec2 textureCoordsOut;
@@ -54,9 +55,9 @@ void main() {
     // Normalized Position
     {
         vec2 vertexPos = vertices[gl_VertexID];
-        vertexPos.y = -vertexPos.y + screenSize.y; // Invert Y axis
-        vertexPos = 2.0 * (vertexPos / screenSize) - 1.0; // Normalize X axis
-        gl_Position = vec4(vertexPos, 0.0, 1.0); // Set position
+        //vertexPos.y = -vertexPos.y + screenSize.y; // Invert Y axis
+        //vertexPos = 2.0 * (vertexPos / screenSize) - 1.0; // Normalize X axis
+        gl_Position = projection * vec4(vertexPos, 0.0, 1.0); // Set position
     }
 
     textureCoordsOut = textureCoords[gl_VertexID];

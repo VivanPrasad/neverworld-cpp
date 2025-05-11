@@ -16,27 +16,70 @@ struct Performance {
 };
 
 static Performance performance;
+static KeyCode keyCodes[KEY_COUNT];
 static HWND window;
 static HDC dc;
+
+static void start_frame_time() {
+    LARGE_INTEGER perf;
+    QueryPerformanceFrequency(&perf);
+    performance.frequency = (float)perf.QuadPart;
+    QueryPerformanceCounter(&performance.frame_begin);
+}
+
+static void reset_frame_time() {
+    QueryPerformanceCounter(&performance.frame_end);
+    performance.delta = (float)(performance.frame_end.QuadPart \
+        - performance.frame_begin.QuadPart) / performance.frequency;
+    performance.frame_begin = performance.frame_end;
+}
 
 void resize_window() {
     RECT rect;
     GetClientRect(window, &rect);
-    input.screenWidth = rect.right - rect.left;
-    input.screenHeight = rect.bottom - rect.top;
+    input.screenSize.x = rect.right - rect.left;
+    input.screenSize.y = rect.bottom - rect.top;
 }
 
-LRESULT CALLBACK window_callback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK window_callback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     LRESULT result = 0;
-    switch(uMsg) {
+    switch(message) {
         case WM_CLOSE: {running = false;} break;
         case WM_SIZE: {resize_window();} break;
-        default: {result = DefWindowProc(hwnd,uMsg,wParam,lParam);}
+        
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN: {
+            bool isDown = (message == WM_KEYDOWN || message == WM_SYSKEYDOWN || message == WM_LBUTTONDOWN);
+            KeyCode key = keyCodes[wParam];
+            handle_key_event(key, isDown);
+        } break;
+
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP: {
+            bool isDown = (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN \
+                || message == WM_MBUTTONDOWN);
+            int mouseCode = 0;
+            if (message == WM_LBUTTONDOWN || message == WM_LBUTTONUP) {mouseCode = VK_LBUTTON;}
+            else if (message == WM_RBUTTONDOWN || message == WM_RBUTTONUP) {mouseCode = VK_RBUTTON;}
+            else if (message == WM_MBUTTONDOWN || message == WM_MBUTTONUP) {mouseCode = VK_MBUTTON;}
+            KeyCode key = keyCodes[mouseCode];
+            handle_key_event(key, isDown);
+        } break;
+
+        default: {result = DefWindowProc(hwnd,message,wParam,lParam);}
     }
     return result;
 }
 
-void platform_create_window(int width, int height) {
+void platform_create_window() {
+    int width = input.screenSize.x;
+    int height = input.screenSize.y;
     HINSTANCE hInstance = GetModuleHandleA(0);
     WNDCLASSA wc = {};
 
@@ -147,45 +190,30 @@ void platform_create_window(int width, int height) {
     ShowWindow(window, SW_SHOW);
 }
 
-static void handle_window_input() {
+static void platform_update_window() {
+    reset_input();
     MSG message;
-    for (int i = 0; i < BUTTON_COUNT; i++) {
-        input.buttons[i].changed = false;
-    }
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE)) {
-        switch(message.message) {
-            case WM_KEYUP:
-            case WM_KEYDOWN: {
-                u32 vk_code = (u32)message.wParam;
-                bool is_down = ((message.lParam & (1 << 31)) == 0);
-
-                switch (vk_code) {
-                    handle_input(BUTTON_UP, VK_UP);
-                    handle_input(BUTTON_DOWN, VK_DOWN);
-                    handle_input(BUTTON_LEFT, VK_LEFT);
-                    handle_input(BUTTON_RIGHT, VK_RIGHT);
-                }
-            } break;
-            default: {
-                TranslateMessage(&message);
-                DispatchMessage(&message);
-            } break;
-        }
+        TranslateMessage(&message);
+        DispatchMessage(&message); // Calls the window_callback
     }
-}
 
-static void setup_frame_time() {
-    LARGE_INTEGER perf;
-    QueryPerformanceFrequency(&perf);
-    performance.frequency = (float)perf.QuadPart;
-    QueryPerformanceCounter(&performance.frame_begin);
-}
+    // Mouse Position
+    {
+        POINT mousePos;
+        GetCursorPos(&mousePos);
+        ScreenToClient(window, &mousePos);
 
-static void update_frame_time() {
-    QueryPerformanceCounter(&performance.frame_end);
-    performance.delta = (float)(performance.frame_end.QuadPart \
-        - performance.frame_begin.QuadPart) / performance.frequency;
-    performance.frame_begin = performance.frame_end;
+        input.prevMousePos = input.mousePos;
+        input.mousePos.x = (float)mousePos.x;
+        input.mousePos.y = (float)mousePos.y;
+        input.relativeMousePos = input.mousePos - input.prevMousePos;
+
+        // Mouse Position World
+        input.screenMousePos = screen_to_world(input.mousePos);
+        input.prevScreenMousePos = screen_to_world(input.prevMousePos);
+        input.relativeScreenMousePos = input.screenMousePos - input.prevScreenMousePos;
+    }
 }
 
 void* platform_load_gl_function(char* funName) {
@@ -202,3 +230,50 @@ void* platform_load_gl_function(char* funName) {
 void platform_swap_buffers() {
     SwapBuffers(dc);
 }
+
+void platform_fill_keycodes() {
+    keyCodes[VK_LBUTTON] = KEY_MOUSE_LEFT;
+    keyCodes[VK_MBUTTON] = KEY_MOUSE_MIDDLE;
+    keyCodes[VK_RBUTTON] = KEY_MOUSE_RIGHT;
+
+    keyCodes['Q'] = KEY_Q;
+    keyCodes['W'] = KEY_W;
+    keyCodes['E'] = KEY_E;
+    keyCodes['A'] = KEY_A;
+    keyCodes['S'] = KEY_S;
+    keyCodes['D'] = KEY_D;
+    keyCodes['Z'] = KEY_Z;
+    keyCodes['X'] = KEY_X;
+    keyCodes['C'] = KEY_C;
+
+    keyCodes['1'] = KEY_1;
+    keyCodes['2'] = KEY_2;
+    keyCodes['3'] = KEY_3;
+    keyCodes['4'] = KEY_4;
+    keyCodes['5'] = KEY_5;
+    
+    keyCodes[VK_F11] = KEY_F11;
+
+    keyCodes[VK_UP] = KEY_UP;
+    keyCodes[VK_DOWN] = KEY_DOWN;
+    keyCodes[VK_LEFT] = KEY_LEFT;
+    keyCodes[VK_RIGHT] = KEY_RIGHT;
+
+    keyCodes[VK_LSHIFT] = KEY_LSHIFT;
+    keyCodes[VK_RSHIFT] = KEY_RSHIFT;
+
+    keyCodes[VK_SPACE] = KEY_SPACE;
+    keyCodes[VK_RETURN] = KEY_ENTER;
+    keyCodes[VK_ESCAPE] = KEY_ESCAPE;
+    keyCodes[VK_TAB] = KEY_TAB;
+}
+
+/*
+KEY MAP:
+    Esc                  F11
+         1 2 3 4 5
+    Tab  Q W E
+          A S D        Enter
+    Shift Z X C        Shift    /\
+             Space            < \/ >
+    */

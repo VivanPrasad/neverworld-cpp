@@ -11,27 +11,27 @@
 #include "gl_renderer.cpp"
 
 int main() {
-    input.screenWidth = 1280;
-    input.screenHeight = 720;
+    input.screenSize = {1280,720};
     BumpAllocator transientStorage = make_bump_allocator(MB(10));
-    platform_create_window(input.screenWidth, input.screenHeight);
+    platform_create_window();
+    platform_fill_keycodes();
     gl_init(&transientStorage);
-    setup_frame_time();
-
+    
+    start_frame_time();
+    init();
     while (running) {
-        // Input
-        handle_window_input();
+        // Handle Input
+        platform_update_window();
 
-        // Simulate
+        // Update Game
+        update();
 
         // Render
-        update_game();
         gl_render(&transientStorage);
-
         platform_swap_buffers();
         
-        // Time
-        update_frame_time();
+        // Reset Performance
+        reset_frame_time();
     }
     return EXIT_SUCCESS;
 }

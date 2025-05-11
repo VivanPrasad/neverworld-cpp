@@ -15,6 +15,7 @@ struct GLContext {
     GLuint textureID;
     GLuint transformSBOID; // Transform Shader Buffer Object ID
     GLuint screenSizeID; // Screen Size Uniform ID
+    GLuint projectionID; // Orthographic Projection Matrix Uniform ID
 };
 
 // ###################### OPENGL GLOBALS ##################################
@@ -27,9 +28,9 @@ static void APIENTRY gl_debug_callback(GLenum source, GLenum type, GLuint id, GL
     switch (severity) {
         case GL_DEBUG_SEVERITY_HIGH:
         case GL_DEBUG_SEVERITY_MEDIUM:
-        case GL_DEBUG_SEVERITY_LOW:
+        case GL_DEBUG_SEVERITY_LOW: {
             SM_ASSERT(false,"OpenGL Error: %s", message);
-            break;
+        } break;
         default:
             SM_TRACE((char*)message);
             break;
@@ -130,6 +131,7 @@ bool gl_init(BumpAllocator* transientStorage) {
     // Uniforms
     {
         glContext.screenSizeID = glGetUniformLocation(glContext.programID, "screenSize");
+        glContext.projectionID = glGetUniformLocation(glContext.programID, "projection");
     }
 
     // Same color space as the texture
@@ -149,12 +151,21 @@ void gl_render(BumpAllocator* transientStorage) {
     glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
     glClearDepth(0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, input.screenWidth, input.screenHeight);
+    glViewport(0, 0, input.screenSize.x, input.screenSize.y);
 
     // Copy screen size to the GPU
     {
-        Vec2 screenSize = {(float)input.screenWidth, (float)input.screenHeight};
+        Vec2 screenSize = {(float)input.screenSize.x, (float)input.screenSize.y};
         glUniform2fv(glContext.screenSizeID, 1, &screenSize.x);
+
+        // Orthographic Projection Matrix
+        Camera2D camera = renderData.gameCamera;
+        Mat4 projection = orthographic_projection(
+            camera.position.x - camera.dimensions.x * 0.5f,
+            camera.position.x + camera.dimensions.x * 0.5f,
+            camera.position.y - camera.dimensions.y * 0.5f,
+            camera.position.y + camera.dimensions.y * 0.5f);
+        glUniformMatrix4fv(glContext.projectionID, 1, GL_FALSE, &projection.ax);
     }
 
     // Opaque Objects

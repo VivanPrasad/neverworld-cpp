@@ -230,9 +230,52 @@ bool copy_file(char* fileName, char* outputName, BumpAllocator* bumpAllocator) {
 struct Vec2 {
     float x;
     float y;
+    Vec2 operator-(Vec2 v) {return {x - v.x, y - v.y};}
+    Vec2 operator+(Vec2 v) {return {x + v.x, y + v.y};}
 };
 
 struct Vec2i {
     int x;
     int y;
+    Vec2i operator-(Vec2i v) {return {x - v.x, y - v.y};}
+    Vec2i operator+(Vec2i v) {return {x + v.x, y + v.y};}
 };
+
+struct Vec4 {
+    union {
+        float values[4];
+        struct {float x, y, z, w;};
+        struct {float r, g, b, a;};
+    };
+    float& operator[](int index) {
+        return values[index];
+    }
+};
+struct Mat4 {
+    union {
+        Vec4 values[4]; //Column or Row major?
+        struct {
+            float ax,bx,cx,dx;
+            float ay,by,cy,dy;
+            float az,bz,cz,dz;
+            float aw,bw,cw,dw;
+        };
+    };
+
+    Vec4& operator[](int column) {
+        return values[column];
+    }
+};
+
+Mat4 orthographic_projection(float left, float right, float top, float bottom) {
+    Mat4 result = {};
+    result.aw = -(right + left) / (right - left);
+    result.bw = (top + bottom) / (top - bottom);
+    result.cw = 0.0f; // Near Plane (flat)
+    result[0][0] = 2.0f / (right - left);
+    result[1][1] = 2.0f / (top - bottom);
+    result[2][2] = 1.0f; // Far Plane
+    result[3][3] = 1.0f; // Homogeneous coordinate
+
+    return result;
+}
