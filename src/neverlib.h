@@ -105,6 +105,7 @@ char* bump_alloc(BumpAllocator* bumpAllocator, size_t size) {
         "BumpAllocator is full!");
     result = bumpAllocator->memory + bumpAllocator->used;
     bumpAllocator->used += allignedSize;
+    printf("Allocated %d bytes of memory\n",(unsigned long long)allignedSize);
     return result;
 }
 
@@ -239,6 +240,7 @@ struct Vec2i {
     int y;
     Vec2i operator-(Vec2i v) {return {x - v.x, y - v.y};}
     Vec2i operator+(Vec2i v) {return {x + v.x, y + v.y};}
+    Vec2i operator/(int s) {return {x / s, y / s};}
 };
 
 struct Vec4 {

@@ -12,7 +12,7 @@
 
 int main() {
     input.screenSize = {1280,720};
-    BumpAllocator transientStorage = make_bump_allocator(MB(10));
+    BumpAllocator transientStorage = make_bump_allocator(KB(10));
     platform_create_window();
     platform_fill_keycodes();
     gl_init(&transientStorage);

@@ -4,26 +4,37 @@
 #include "game.h"
 
 // Game Constances
-constexpr int WORLD_WIDTH = 320;
-constexpr int WORLD_HEIGHT = 180;
 
-constexpr int TILESIZE = 8;
 // Game Structs
 
 // Game Functions
 
+Tile* get_tile(int x, int y) {
+    Tile* tile = nullptr;
+    if (x >= 0 && x < WORLD_SIZE.x && y >= 0 && y < WORLD_SIZE.y) {
+        tile = &gameState.worldGrid[x][y];
+    }
+    return tile;
+}
+
+Tile* get_tile(Vec2i worldPos) {
+    return get_tile(worldPos / TILESIZE);
+}
+
+// Game Logic
 void init() {
-    renderData.gameCamera.dimensions = {WORLD_WIDTH,WORLD_HEIGHT};
+    renderData.gameCamera.dimensions = {320, 180};
+    renderData.gameCamera.position = {160,-90};
 }
 
 void process() {
-    if (is_key_down(KEY_W)) {renderData.gameCamera.position.y -= 1.0f;}
-    if (is_key_down(KEY_A)) {renderData.gameCamera.position.x += 1.0f;}
-    if (is_key_down(KEY_S)) {renderData.gameCamera.position.y += 1.0f;}
-    if (is_key_down(KEY_D)) {renderData.gameCamera.position.x -= 1.0f;}
+    if (is_key_down(KEY_W)) {--gameState.playerPos.y;}
+    if (is_key_down(KEY_A)) {--gameState.playerPos.x;}
+    if (is_key_down(KEY_S)) {++gameState.playerPos.y;}
+    if (is_key_down(KEY_D)) {++gameState.playerPos.x;}
 }
 
 void update() {
-    draw_sprite(SPRITE_PLAYER, {0.0f, 0.0f}, {8.0f, 16.0f});
+    draw_sprite(SPRITE_PLAYER, gameState.playerPos, {8.0f, 16.0f});
     process();
 }
